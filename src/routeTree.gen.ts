@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as MatchesRouteImport } from './routes/matches'
@@ -21,6 +22,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/matches': typeof MatchesRoute
   '/membership': typeof MembershipRoute
   '/messages': typeof MessagesRoute
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/matches': typeof MatchesRoute
   '/membership': typeof MembershipRoute
   '/messages': typeof MessagesRoute
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/matches': typeof MatchesRoute
   '/membership': typeof MembershipRoute
   '/messages': typeof MessagesRoute
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/membership'
     | '/messages'
+    | '/profile'
     | '/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/membership'
     | '/messages'
+    | '/profile'
     | '/signup'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/matches'
     | '/membership'
     | '/messages'
+    | '/profile'
     | '/signup'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   MatchesRoute: typeof MatchesRoute
   MembershipRoute: typeof MembershipRoute
   MessagesRoute: typeof MessagesRoute
+  ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatchesRoute: MatchesRoute,
   MembershipRoute: MembershipRoute,
   MessagesRoute: MessagesRoute,
+  ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
