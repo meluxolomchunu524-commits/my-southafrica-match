@@ -84,14 +84,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "LoveConnect SA is South Africa's premium dating platform for singles seeking genuine, safe, and lasting relationships. Join thousands of members today.",
       },
       { name: "author", content: "LoveConnect SA" },
-      { property: "og:title", content: "LoveConnect SA — Find Your Perfect Match" },
+      { property: "og:title", content: "LoveConnect SA — Find Your Perfect Match in South Africa" },
       {
         property: "og:description",
         content:
-          "Join thousands of South African singles building real relationships on a safe, modern dating platform.",
+          "LoveConnect SA is South Africa's premium dating platform for singles seeking genuine, safe, and lasting relationships. Join thousands of members today.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "LoveConnect SA — Find Your Perfect Match in South Africa" },
+      { name: "twitter:description", content: "LoveConnect SA is South Africa's premium dating platform for singles seeking genuine, safe, and lasting relationships. Join thousands of members today." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/84c5d1a4-f8bc-400b-ba53-e84fa45edfa0/id-preview-2caf3bd1--bbd756ab-904d-4b6f-980e-a757d846d42d.lovable.app-1783678391551.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/84c5d1a4-f8bc-400b-ba53-e84fa45edfa0/id-preview-2caf3bd1--bbd756ab-904d-4b6f-980e-a757d846d42d.lovable.app-1783678391551.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
