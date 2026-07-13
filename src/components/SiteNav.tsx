@@ -1,6 +1,8 @@
-import { Link } from "@tanstack/react-router";
-import { Heart, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Heart, LogOut, Menu, User, X } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 const links = [
   { to: "/", label: "Home" },
@@ -13,6 +15,14 @@ const links = [
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setOpen(false);
+    navigate({ to: "/" });
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -42,18 +52,25 @@ export function SiteNav() {
         </nav>
 
         <div className="hidden lg:flex items-center gap-2">
-          <Link
-            to="/login"
-            className="rounded-full px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            to="/signup"
-            className="rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition-shadow"
-          >
-            Sign Up
-          </Link>
+          {user ? (
+            <>
+              <Link to="/profile" className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                <User className="h-4 w-4" /> Profile
+              </Link>
+              <button onClick={signOut} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition-shadow">
+                <LogOut className="h-4 w-4" /> Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="rounded-full px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                Login
+              </Link>
+              <Link to="/signup" className="rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition-shadow">
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -79,20 +96,25 @@ export function SiteNav() {
               </Link>
             ))}
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-center"
-              >
-                Login
-              </Link>
-              <Link
-                to="/signup"
-                onClick={() => setOpen(false)}
-                className="rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white text-center"
-              >
-                Sign Up
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/profile" onClick={() => setOpen(false)} className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-center">
+                    Profile
+                  </Link>
+                  <button onClick={signOut} className="rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white text-center">
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setOpen(false)} className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-center">
+                    Login
+                  </Link>
+                  <Link to="/signup" onClick={() => setOpen(false)} className="rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white text-center">
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
