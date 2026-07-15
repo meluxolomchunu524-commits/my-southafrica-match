@@ -132,8 +132,17 @@ function Matches() {
       <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-12">
         {matchToast && (
           <div className="mb-6 rounded-3xl bg-gradient-brand p-5 text-white text-center shadow-glow animate-in fade-in slide-in-from-top-4">
-            <Sparkles className="inline h-5 w-5 mr-2" />
-            {matchToast}
+            <p className="font-display text-lg font-semibold">
+              <Sparkles className="inline h-5 w-5 mr-2" />
+              It's a match with {matchToast.name}! 💕
+            </p>
+            <Link
+              to="/messages/$matchId"
+              params={{ matchId: matchToast.matchId }}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-purple hover:bg-white transition"
+            >
+              <MessageCircle className="h-4 w-4" /> Say hello
+            </Link>
           </div>
         )}
 
