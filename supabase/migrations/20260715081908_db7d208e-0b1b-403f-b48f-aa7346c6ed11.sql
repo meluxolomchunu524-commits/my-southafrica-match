@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.handle_mutual_like() FROM PUBLIC, anon, authenticated;
