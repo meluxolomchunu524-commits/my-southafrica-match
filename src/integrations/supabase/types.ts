@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      matches: {
+        Row: {
+          created_at: string
+          id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      profile_likes: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          liked_id: string
+          liker_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          liked_id: string
+          liker_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          liked_id?: string
+          liker_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
