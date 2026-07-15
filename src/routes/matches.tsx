@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Heart, MapPin, X, Loader2, Sparkles } from "lucide-react";
+import { Heart, MapPin, X, Loader2, Sparkles, MessageCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHero } from "./about";
 import { supabase } from "@/integrations/supabase/client";
