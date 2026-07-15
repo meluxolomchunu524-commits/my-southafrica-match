@@ -109,8 +109,8 @@ function Matches() {
           .eq("user_b", b)
           .maybeSingle();
         if (match) {
-          setMatchToast(`It's a match with ${current.full_name ?? "your new connection"}! 💕`);
-          setTimeout(() => setMatchToast(null), 3500);
+          setMatchToast({ name: current.full_name ?? "your new connection", matchId: match.id });
+          setTimeout(() => setMatchToast(null), 6000);
         }
       }
       setIndex((i) => i + 1);
