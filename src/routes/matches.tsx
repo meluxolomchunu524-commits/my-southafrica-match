@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Heart, MapPin, X, Loader2, Sparkles } from "lucide-react";
+import { Heart, MapPin, X, Loader2, Sparkles, MessageCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHero } from "./about";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ function Matches() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
-  const [matchToast, setMatchToast] = useState<string | null>(null);
+  const [matchToast, setMatchToast] = useState<{ name: string; matchId: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -109,8 +109,8 @@ function Matches() {
           .eq("user_b", b)
           .maybeSingle();
         if (match) {
-          setMatchToast(`It's a match with ${current.full_name ?? "your new connection"}! 💕`);
-          setTimeout(() => setMatchToast(null), 3500);
+          setMatchToast({ name: current.full_name ?? "your new connection", matchId: match.id });
+          setTimeout(() => setMatchToast(null), 6000);
         }
       }
       setIndex((i) => i + 1);
@@ -132,8 +132,17 @@ function Matches() {
       <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-12">
         {matchToast && (
           <div className="mb-6 rounded-3xl bg-gradient-brand p-5 text-white text-center shadow-glow animate-in fade-in slide-in-from-top-4">
-            <Sparkles className="inline h-5 w-5 mr-2" />
-            {matchToast}
+            <p className="font-display text-lg font-semibold">
+              <Sparkles className="inline h-5 w-5 mr-2" />
+              It's a match with {matchToast.name}! 💕
+            </p>
+            <Link
+              to="/messages/$matchId"
+              params={{ matchId: matchToast.matchId }}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-purple hover:bg-white transition"
+            >
+              <MessageCircle className="h-4 w-4" /> Say hello
+            </Link>
           </div>
         )}
 
