@@ -44,7 +44,7 @@ function Matches() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
-  const [matchToast, setMatchToast] = useState<string | null>(null);
+  const [matchToast, setMatchToast] = useState<{ name: string; matchId: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
