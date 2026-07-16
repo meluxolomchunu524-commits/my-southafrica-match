@@ -57,17 +57,13 @@ export const getBrowsableProfilesFn = createServerFn({ method: 'POST' })
   .validator((_d: Record<string, never>) => _d)
   .handler(async ({ context }) => {
     const userId = requireUserId(context);
-    const seenRes = await pool.query(
-      'SELECT liked_id FROM profile_likes WHERE liker_id = $1',
-      [userId],
-    );
-    const excluded: string[] = [userId, ...seenRes.rows.map((r: any) => r.liked_id)];
-    const placeholders = excluded.map((_, i) => `$${i + 1}`).join(', ');
+    // Return every profile except the current user — no like filter, no row cap.
+    // The client cycles through indefinitely.
     const res = await pool.query(
       `SELECT id, full_name, username, gender, date_of_birth, city, province, bio, avatar_url, cover_url
-       FROM profiles WHERE id NOT IN (${placeholders})
-       ORDER BY created_at DESC LIMIT 100`,
-      excluded,
+       FROM profiles WHERE id != $1
+       ORDER BY full_name ASC`,
+      [userId],
     );
     return res.rows;
   });
