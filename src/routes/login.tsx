@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Heart, Mail, Lock, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Heart, Mail, Lock, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 
@@ -20,6 +20,22 @@ function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verifiedNotice, setVerifiedNotice] = useState(false);
+
+  // Post-verification landing: sign the user out (Supabase auto-signs them in
+  // when they click the confirmation link) so they must log in explicitly.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      setVerifiedNotice(true);
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) supabase.auth.signOut();
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,6 +77,11 @@ function Login() {
             <p className="mt-1 text-sm text-muted-foreground">Enter your details to continue.</p>
           </div>
 
+          {verifiedNotice && (
+            <p className="rounded-2xl bg-primary/10 text-primary text-sm px-4 py-3 inline-flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" /> Email verified successfully. Please log in.
+            </p>
+          )}
           {error && <p className="rounded-2xl bg-destructive/10 text-destructive text-sm px-4 py-3">{error}</p>}
 
           <label className="block">
