@@ -26,6 +26,94 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Null / no-op client — returned when Supabase credentials are not configured.
+// Every method returns a safe empty response so the app renders without crashing.
+// ---------------------------------------------------------------------------
+function createNullClient() {
+  const noopSubscription = { unsubscribe: () => {} };
+
+  // A chainable query builder stub that always resolves to { data: [], error: null }
+  function queryStub(): any {
+    const stub: any = {
+      select: () => stub,
+      insert: () => stub,
+      update: () => stub,
+      upsert: () => stub,
+      delete: () => stub,
+      eq: () => stub,
+      neq: () => stub,
+      gt: () => stub,
+      lt: () => stub,
+      gte: () => stub,
+      lte: () => stub,
+      like: () => stub,
+      ilike: () => stub,
+      in: () => stub,
+      is: () => stub,
+      not: () => stub,
+      or: () => stub,
+      order: () => stub,
+      limit: () => stub,
+      range: () => stub,
+      single: () => Promise.resolve({ data: null, error: null }),
+      maybeSingle: () => Promise.resolve({ data: null, error: null }),
+      then: (resolve: (v: any) => any) => Promise.resolve({ data: [], error: null }).then(resolve),
+    };
+    return stub;
+  }
+
+  // Storage bucket stub
+  function storageBucketStub() {
+    return {
+      upload: async () => ({ data: null, error: null }),
+      download: async () => ({ data: null, error: null }),
+      remove: async () => ({ data: null, error: null }),
+      list: async () => ({ data: [], error: null }),
+      createSignedUrl: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      getPublicUrl: () => ({ data: { publicUrl: '' } }),
+    };
+  }
+
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      getUser: async () => ({ data: { user: null }, error: null }),
+      onAuthStateChange: (_event: any, callback?: any) => {
+        // Fire INITIAL_SESSION with null so useAuth settles immediately
+        if (typeof callback === 'function') {
+          Promise.resolve().then(() => callback('INITIAL_SESSION', null));
+        }
+        return { data: { subscription: noopSubscription } };
+      },
+      signUp: async () => ({
+        data: { user: null, session: null },
+        error: { message: 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to connect.' },
+      }),
+      signInWithPassword: async () => ({
+        data: { user: null, session: null },
+        error: { message: 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to connect.' },
+      }),
+      signInWithOAuth: async () => ({
+        data: { provider: 'google', url: null },
+        error: { message: 'Supabase is not configured.' },
+      }),
+      signOut: async () => ({ error: null }),
+      resend: async () => ({ error: { message: 'Supabase is not configured.' } }),
+      resetPasswordForEmail: async () => ({ error: { message: 'Supabase is not configured.' } }),
+      updateUser: async () => ({ data: { user: null }, error: { message: 'Supabase is not configured.' } }),
+    },
+    from: (_table: string) => queryStub(),
+    storage: {
+      from: (_bucket: string) => storageBucketStub(),
+    },
+    channel: (_name: string) => ({
+      on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
+      subscribe: () => ({ unsubscribe: () => {} }),
+    }),
+    removeChannel: () => {},
+  } as unknown as ReturnType<typeof createSupabaseClient>;
+}
 
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
@@ -38,9 +126,8 @@ function createSupabaseClient() {
       ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
       ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.warn(`[Supabase] Missing env var(s): ${missing.join(', ')}. Running in no-op mode — connect Supabase to enable auth and data.`);
+    return createNullClient();
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -65,4 +152,3 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
     return Reflect.get(_supabase, prop, receiver);
   },
 });
-
