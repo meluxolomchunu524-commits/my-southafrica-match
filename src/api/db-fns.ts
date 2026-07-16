@@ -28,23 +28,26 @@ export const updateProfileFn = createServerFn({ method: 'POST' })
     gender?: string | null; province?: string | null; city?: string | null;
     bio?: string | null; occupation?: string | null; education?: string | null;
     relationship_preference?: string | null; interests?: string[];
-    avatar_url?: string | null; cover_url?: string | null;
+    photos?: string[]; avatar_url?: string | null; cover_url?: string | null;
   }) => d)
   .handler(async ({ data }) => {
     const req = getWebRequest();
     const { sub: userId } = requireAuth(req);
+    const photos = data.photos ?? [];
+    const avatarUrl = data.avatar_url ?? (photos[0] ?? null);
     const res = await pool.query(
       `UPDATE profiles SET
         full_name=$1, username=$2, date_of_birth=$3::date, gender=$4,
         province=$5, city=$6, bio=$7, occupation=$8, education=$9,
-        relationship_preference=$10, interests=$11, avatar_url=$12, cover_url=$13
-       WHERE id=$14 RETURNING *`,
+        relationship_preference=$10, interests=$11, photos=$12,
+        avatar_url=$13, cover_url=$14
+       WHERE id=$15 RETURNING *`,
       [
         data.full_name ?? null, data.username ?? null, data.date_of_birth || null,
         data.gender ?? null, data.province ?? null, data.city ?? null,
         data.bio ?? null, data.occupation ?? null, data.education ?? null,
         data.relationship_preference ?? null, data.interests ?? [],
-        data.avatar_url ?? null, data.cover_url ?? null, userId,
+        photos, avatarUrl, data.cover_url ?? null, userId,
       ],
     );
     return res.rows[0] ?? null;
