@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Heart, LogOut, Menu, User, X } from "lucide-react";
+import { Heart, Menu, User, X } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
 const links = [
@@ -15,11 +14,11 @@ const links = [
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  async function signOut() {
-    await supabase.auth.signOut();
+  function handleSignOut() {
+    signOut();
     setOpen(false);
     navigate({ to: "/" });
   }
@@ -57,8 +56,8 @@ export function SiteNav() {
               <Link to="/profile" className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
                 <User className="h-4 w-4" /> Profile
               </Link>
-              <button onClick={signOut} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition-shadow">
-                <LogOut className="h-4 w-4" /> Sign out
+              <button onClick={handleSignOut} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition-shadow">
+                Sign out
               </button>
             </>
           ) : (
@@ -101,7 +100,7 @@ export function SiteNav() {
                   <Link to="/profile" onClick={() => setOpen(false)} className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-center">
                     Profile
                   </Link>
-                  <button onClick={signOut} className="rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white text-center">
+                  <button onClick={handleSignOut} className="rounded-full bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white text-center">
                     Sign out
                   </button>
                 </>

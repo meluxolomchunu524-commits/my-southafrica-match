@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Camera, Check, Heart, ImagePlus, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getProfileFn, updateProfileFn } from "@/api/db-fns";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "Edit your profile — LoveConnect SA" },
-      { name: "description", content: "Set up and manage your LoveConnect SA profile: photos, bio, interests, and preferences." },
+      { name: "description", content: "Set up and manage your LoveConnect SA profile." },
     ],
   }),
   component: ProfilePage,
@@ -47,27 +47,19 @@ function ProfilePage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate({ to: "/login" }); return; }
-    (async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    getProfileFn({ data: {} }).then((data) => {
       if (data) {
         setF({
-          full_name: data.full_name ?? "",
-          username: data.username ?? "",
-          date_of_birth: data.date_of_birth ?? "",
-          gender: data.gender ?? "",
-          province: data.province ?? "",
-          city: data.city ?? "",
-          bio: data.bio ?? "",
-          occupation: data.occupation ?? "",
-          education: data.education ?? "",
-          relationship_preference: data.relationship_preference ?? "",
-          interests: data.interests ?? [],
-          avatar_url: data.avatar_url,
-          cover_url: data.cover_url,
+          full_name: data.full_name ?? "", username: data.username ?? "",
+          date_of_birth: data.date_of_birth ?? "", gender: data.gender ?? "",
+          province: data.province ?? "", city: data.city ?? "",
+          bio: data.bio ?? "", occupation: data.occupation ?? "",
+          education: data.education ?? "", relationship_preference: data.relationship_preference ?? "",
+          interests: data.interests ?? [], avatar_url: data.avatar_url, cover_url: data.cover_url,
         });
       }
       setLoading(false);
-    })();
+    }).catch(() => setLoading(false));
   }, [user, authLoading, navigate]);
 
   function readFile(file: File, key: "avatar_url" | "cover_url") {
@@ -91,18 +83,24 @@ function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     setError(null); setSaving(true);
-    const { error } = await supabase.from("profiles").update({
-      full_name: f.full_name, username: f.username || null,
-      date_of_birth: f.date_of_birth || null, gender: f.gender || null,
-      province: f.province || null, city: f.city || null, bio: f.bio || null,
-      occupation: f.occupation || null, education: f.education || null,
-      relationship_preference: f.relationship_preference || null,
-      interests: f.interests, avatar_url: f.avatar_url, cover_url: f.cover_url,
-    }).eq("id", user.id);
-    setSaving(false);
-    if (error) return setError(error.message);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      await updateProfileFn({
+        data: {
+          full_name: f.full_name, username: f.username || null,
+          date_of_birth: f.date_of_birth || null, gender: f.gender || null,
+          province: f.province || null, city: f.city || null, bio: f.bio || null,
+          occupation: f.occupation || null, education: f.education || null,
+          relationship_preference: f.relationship_preference || null,
+          interests: f.interests, avatar_url: f.avatar_url, cover_url: f.cover_url,
+        },
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (authLoading || loading) {
@@ -118,9 +116,7 @@ function ProfilePage() {
             <h1 className="mt-1 font-display text-4xl sm:text-5xl font-bold">Make a great first impression</h1>
             <p className="mt-2 text-muted-foreground max-w-xl">Genuine photos and an honest bio get the best matches.</p>
           </div>
-          <Link to="/matches" className="rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-muted transition">
-            View matches
-          </Link>
+          <Link to="/matches" className="rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-muted transition">View matches</Link>
         </div>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-8">
@@ -133,100 +129,65 @@ function ProfilePage() {
                 className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full bg-black/50 backdrop-blur px-4 py-2 text-xs font-semibold text-white hover:bg-black/70 transition">
                 <ImagePlus className="h-4 w-4" /> {f.cover_url ? "Change cover" : "Add cover photo"}
               </button>
-              <input ref={coverRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0], "cover_url")} />
+              <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0], "cover_url")} />
             </div>
-
             <div className="px-6 sm:px-8 pb-6 -mt-16 flex flex-col sm:flex-row sm:items-end gap-4">
               <div className="relative">
                 <div className="h-32 w-32 rounded-full bg-muted ring-4 ring-background overflow-hidden grid place-items-center shadow-glow"
-                     style={f.avatar_url ? { backgroundImage: `url(${f.avatar_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
+                  style={f.avatar_url ? { backgroundImage: `url(${f.avatar_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
                   {!f.avatar_url && <Heart className="h-8 w-8 text-pink" fill="currentColor" />}
                 </div>
                 <button type="button" onClick={() => avatarRef.current?.click()} aria-label="Upload profile photo"
                   className="absolute bottom-1 right-1 grid h-10 w-10 place-items-center rounded-full bg-gradient-brand text-white shadow-soft hover:shadow-glow transition">
                   <Camera className="h-4 w-4" />
                 </button>
-                <input ref={avatarRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0], "avatar_url")} />
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0], "avatar_url")} />
               </div>
-
               <div className="flex-1 sm:pb-2">
                 <h2 className="font-display text-2xl font-bold">{f.full_name || "Your name"}</h2>
-                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" /> {f.city || "City"}{f.province ? `, ${f.province}` : ""}
-                </p>
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {f.city || "City"}{f.province ? `, ${f.province}` : ""}</p>
               </div>
-
               <div className="sm:pb-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-purple">
-                  <Sparkles className="h-3 w-3" /> Signed in as {user?.email}
+                  <Sparkles className="h-3 w-3" /> {user?.email}
                 </span>
               </div>
             </div>
           </div>
 
           <Section title="Basic information">
-            <Grid>
-              <Field label="Display name" value={f.full_name} onChange={(v) => set("full_name", v)} />
-              <Field label="Username" value={f.username} onChange={(v) => set("username", v)} />
-            </Grid>
-            <Grid>
-              <Field label="Date of birth" type="date" value={f.date_of_birth} onChange={(v) => set("date_of_birth", v)} />
-              <Select label="Gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Woman","Man","Non-binary","Prefer not to say"]} />
-            </Grid>
-            <Grid>
-              <Select label="Province" value={f.province} onChange={(v) => set("province", v)} options={provinces} />
-              <Field label="City" value={f.city} onChange={(v) => set("city", v)} />
-            </Grid>
+            <Grid><Field label="Display name" value={f.full_name} onChange={(v) => set("full_name", v)} /><Field label="Username" value={f.username} onChange={(v) => set("username", v)} /></Grid>
+            <Grid><Field label="Date of birth" type="date" value={f.date_of_birth} onChange={(v) => set("date_of_birth", v)} /><Select label="Gender" value={f.gender} onChange={(v) => set("gender", v)} options={["Woman","Man","Non-binary","Prefer not to say"]} /></Grid>
+            <Grid><Select label="Province" value={f.province} onChange={(v) => set("province", v)} options={provinces} /><Field label="City" value={f.city} onChange={(v) => set("city", v)} /></Grid>
           </Section>
 
           <Section title="About you">
             <div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Bio</label>
-                <span className="text-xs text-muted-foreground">{f.bio.length}/500</span>
-              </div>
-              <textarea rows={5} maxLength={500} value={f.bio} onChange={(e) => set("bio", e.target.value)}
-                placeholder="Tell people what makes you, you…"
-                className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <div className="flex items-center justify-between"><label className="text-sm font-medium">Bio</label><span className="text-xs text-muted-foreground">{f.bio.length}/500</span></div>
+              <textarea rows={5} maxLength={500} value={f.bio} onChange={(e) => set("bio", e.target.value)} placeholder="Tell people what makes you, you…" className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
-            <Grid>
-              <Field label="Occupation" value={f.occupation} onChange={(v) => set("occupation", v)} />
-              <Field label="Education" value={f.education} onChange={(v) => set("education", v)} />
-            </Grid>
-            <Select label="Relationship goal" value={f.relationship_preference} onChange={(v) => set("relationship_preference", v)}
-              options={["Long-term relationship","Marriage","Casual dating","New friends","Still figuring it out"]} />
+            <Grid><Field label="Occupation" value={f.occupation} onChange={(v) => set("occupation", v)} /><Field label="Education" value={f.education} onChange={(v) => set("education", v)} /></Grid>
+            <Select label="Relationship goal" value={f.relationship_preference} onChange={(v) => set("relationship_preference", v)} options={["Long-term relationship","Marriage","Casual dating","New friends","Still figuring it out"]} />
           </Section>
 
           <Section title="Interests" subtitle="Pick up to 12.">
             <div className="flex flex-wrap gap-2">
               {f.interests.map((t) => (
-                <button type="button" key={t} onClick={() => toggleInterest(t)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-2 text-xs font-semibold text-white shadow-soft">
+                <button type="button" key={t} onClick={() => toggleInterest(t)} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-2 text-xs font-semibold text-white shadow-soft">
                   {t} <X className="h-3 w-3" />
                 </button>
               ))}
               {f.interests.length === 0 && <p className="text-sm text-muted-foreground">No interests yet.</p>}
             </div>
             <div className="flex gap-2">
-              <input value={interestInput} onChange={(e) => setInterestInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addInterest(); } }}
-                placeholder="Add a custom interest…"
-                className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              <button type="button" onClick={addInterest}
-                className="rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition">
-                Add
-              </button>
+              <input value={interestInput} onChange={(e) => setInterestInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addInterest(); } }} placeholder="Add a custom interest…" className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <button type="button" onClick={addInterest} className="rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition">Add</button>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Suggestions</p>
               <div className="flex flex-wrap gap-2">
                 {suggestedInterests.filter((s) => !f.interests.includes(s)).map((t) => (
-                  <button type="button" key={t} onClick={() => toggleInterest(t)}
-                    className="rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium hover:border-pink hover:text-pink transition">
-                    + {t}
-                  </button>
+                  <button type="button" key={t} onClick={() => toggleInterest(t)} className="rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium hover:border-pink hover:text-pink transition">+ {t}</button>
                 ))}
               </div>
             </div>
@@ -248,37 +209,14 @@ function ProfilePage() {
 }
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-soft space-y-5">
-      <div>
-        <h3 className="font-display text-2xl font-bold">{title}</h3>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
-      </div>
-      {children}
-    </div>
-  );
+  return <div className="rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-soft space-y-5"><div><h3 className="font-display text-2xl font-bold">{title}</h3>{subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}</div>{children}</div>;
 }
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-5 sm:grid-cols-2">{children}</div>;
 }
 function Field({ label, value, onChange, ...rest }: { label: string; value: string; onChange: (v: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
-  return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} {...rest}
-        className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-    </div>
-  );
+  return <div><label className="text-sm font-medium">{label}</label><input value={value} onChange={(e) => onChange(e.target.value)} {...rest} className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" /></div>;
 }
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-  return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-        <option value="">Select…</option>
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  return <div><label className="text-sm font-medium">{label}</label><select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"><option value="">Select…</option>{options.map((o) => <option key={o}>{o}</option>)}</select></div>;
 }

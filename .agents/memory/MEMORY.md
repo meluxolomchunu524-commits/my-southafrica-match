@@ -1,0 +1,1 @@
+- [Server fn placement](server-fn-placement.md) — TanStack Start blocks `src/server/**` in client env; use `src/api/` for createServerFn files.

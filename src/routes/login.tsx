@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, Heart, Mail, Lock, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+import { Heart, Mail, Lock, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { signInFn } from "@/api/auth-fns";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -16,43 +16,26 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [verifiedNotice, setVerifiedNotice] = useState(false);
-
-  // Post-verification landing: sign the user out (Supabase auto-signs them in
-  // when they click the confirmation link) so they must log in explicitly.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("verified") === "1") {
-      setVerifiedNotice(true);
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) supabase.auth.signOut();
-      });
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) return setError(error.message);
-    navigate({ to: "/matches" });
-  }
-
-  async function onGoogle() {
-    setError(null);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) setError(result.error.message ?? "Google sign in failed");
+    try {
+      const result = await signInFn({ data: { email, password } });
+      localStorage.setItem("lc_token", result.token);
+      setUser(result.user);
+      navigate({ to: "/matches" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -77,18 +60,13 @@ function Login() {
             <p className="mt-1 text-sm text-muted-foreground">Enter your details to continue.</p>
           </div>
 
-          {verifiedNotice && (
-            <p className="rounded-2xl bg-primary/10 text-primary text-sm px-4 py-3 inline-flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Email verified successfully. Please log in.
-            </p>
-          )}
           {error && <p className="rounded-2xl bg-destructive/10 text-destructive text-sm px-4 py-3">{error}</p>}
 
           <label className="block">
             <span className="text-sm font-medium">Email</span>
             <div className="mt-1 flex items-center gap-2 rounded-2xl border border-border bg-background px-4">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="flex-1 bg-transparent py-3 text-sm focus:outline-none" />
+              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="flex-1 bg-transparent py-3 text-sm focus:outline-none" />
             </div>
           </label>
 
@@ -96,27 +74,12 @@ function Login() {
             <span className="text-sm font-medium">Password</span>
             <div className="mt-1 flex items-center gap-2 rounded-2xl border border-border bg-background px-4">
               <Lock className="h-4 w-4 text-muted-foreground" />
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="flex-1 bg-transparent py-3 text-sm focus:outline-none" />
+              <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="flex-1 bg-transparent py-3 text-sm focus:outline-none" />
             </div>
           </label>
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" className="rounded" /> Remember me
-            </label>
-            <a href="#" className="text-pink font-medium hover:underline">Forgot password?</a>
-          </div>
-
           <button disabled={loading} className="w-full rounded-full bg-gradient-brand py-3.5 text-sm font-semibold text-white shadow-soft hover:shadow-glow transition disabled:opacity-70 inline-flex items-center justify-center gap-2">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />} Log in
-          </button>
-
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex-1 border-t border-border" /> or continue with <span className="flex-1 border-t border-border" />
-          </div>
-
-          <button type="button" onClick={onGoogle} className="w-full rounded-full border border-border py-3 text-sm font-medium hover:bg-muted transition">
-            Continue with Google
           </button>
 
           <p className="text-center text-sm text-muted-foreground">
