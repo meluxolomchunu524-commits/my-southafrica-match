@@ -1,8 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
-import { getWebRequest } from '@tanstack/react-start/server';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
-import { signToken, verifyToken, tokenFromRequest } from '@/lib/auth-helpers';
+import { signToken } from '@/lib/auth-helpers';
 import { attachSupabaseAuth } from '@/integrations/supabase/auth-attacher';
 
 export type AuthUser = {
@@ -13,6 +12,7 @@ export type AuthUser = {
   avatar_url: string | null;
 };
 
+// sign-up — public, no auth needed
 export const signUpFn = createServerFn({ method: 'POST' })
   .validator((d: {
     email: string; password: string; full_name: string; username: string;
@@ -24,10 +24,17 @@ export const signUpFn = createServerFn({ method: 'POST' })
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const existing = await client.query('SELECT id FROM users WHERE email = $1', [data.email.toLowerCase()]);
-      if (existing.rows.length > 0) throw new Error('An account with this email already exists.');
+      const existing = await client.query(
+        'SELECT id FROM users WHERE email = $1',
+        [data.email.toLowerCase()],
+      );
+      if (existing.rows.length > 0)
+        throw new Error('An account with this email already exists.');
       if (data.username) {
-        const uEx = await client.query('SELECT id FROM profiles WHERE username = $1', [data.username]);
+        const uEx = await client.query(
+          'SELECT id FROM profiles WHERE username = $1',
+          [data.username],
+        );
         if (uEx.rows.length > 0) throw new Error('This username is already taken.');
       }
       const hash = await bcrypt.hash(data.password, 12);
@@ -37,8 +44,9 @@ export const signUpFn = createServerFn({ method: 'POST' })
       );
       const user = userRes.rows[0];
       await client.query(
-        `INSERT INTO profiles (id, email, full_name, username, phone, gender, date_of_birth,
-          province, city, relationship_preference, bio, photos, avatar_url, interests)
+        `INSERT INTO profiles
+           (id, email, full_name, username, phone, gender, date_of_birth,
+            province, city, relationship_preference, bio, photos, avatar_url, interests)
          VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14)`,
         [
           user.id, data.email.toLowerCase(),
@@ -55,7 +63,8 @@ export const signUpFn = createServerFn({ method: 'POST' })
         token,
         user: {
           id: user.id, email: user.email,
-          full_name: data.full_name || null, username: data.username || null,
+          full_name: data.full_name || null,
+          username: data.username || null,
           avatar_url: data.photos[0] ?? null,
         } as AuthUser,
       };
@@ -67,6 +76,7 @@ export const signUpFn = createServerFn({ method: 'POST' })
     }
   });
 
+// sign-in — public, no auth needed
 export const signInFn = createServerFn({ method: 'POST' })
   .validator((d: { email: string; password: string }) => d)
   .handler(async ({ data }) => {
@@ -82,25 +92,29 @@ export const signInFn = createServerFn({ method: 'POST' })
     const token = signToken({ sub: row.id, email: row.email });
     return {
       token,
-      user: { id: row.id, email: row.email, full_name: row.full_name, username: row.username, avatar_url: row.avatar_url } as AuthUser,
+      user: {
+        id: row.id, email: row.email,
+        full_name: row.full_name, username: row.username, avatar_url: row.avatar_url,
+      } as AuthUser,
     };
   });
 
+// get current user — requires auth via middleware context
 export const getMeFn = createServerFn({ method: 'POST' })
   .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
-  .handler(async () => {
-    const req = getWebRequest();
-    const token = tokenFromRequest(req);
-    if (!token) return null;
-    const payload = verifyToken(token);
-    if (!payload) return null;
+  .handler(async ({ context }) => {
+    const userId = (context as any).userId as string | null;
+    if (!userId) return null;
     const res = await pool.query(
       `SELECT u.id, u.email, p.full_name, p.username, p.avatar_url
        FROM users u LEFT JOIN profiles p ON p.id = u.id WHERE u.id = $1`,
-      [payload.sub],
+      [userId],
     );
     if (res.rows.length === 0) return null;
     const row = res.rows[0];
-    return { id: row.id, email: row.email, full_name: row.full_name, username: row.username, avatar_url: row.avatar_url } as AuthUser;
+    return {
+      id: row.id, email: row.email,
+      full_name: row.full_name, username: row.username, avatar_url: row.avatar_url,
+    } as AuthUser;
   });
