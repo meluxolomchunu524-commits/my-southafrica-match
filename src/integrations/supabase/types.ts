@@ -110,6 +110,7 @@ export type Database = {
           interests: string[] | null
           occupation: string | null
           phone: string | null
+          photos: string[]
           province: string | null
           relationship_preference: string | null
           updated_at: string
@@ -130,6 +131,7 @@ export type Database = {
           interests?: string[] | null
           occupation?: string | null
           phone?: string | null
+          photos?: string[]
           province?: string | null
           relationship_preference?: string | null
           updated_at?: string
@@ -150,6 +152,7 @@ export type Database = {
           interests?: string[] | null
           occupation?: string | null
           phone?: string | null
+          photos?: string[]
           province?: string | null
           relationship_preference?: string | null
           updated_at?: string
