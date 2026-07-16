@@ -166,20 +166,20 @@ function Signup() {
 
       // Save gallery + first photo as avatar + interests
       const interestsArr = f.interests.split(",").map((s) => s.trim()).filter(Boolean);
-      const update: Record<string, unknown> = {
-        photos: urls,
-        avatar_url: urls[0] ?? null,
-      };
-      if (interestsArr.length) update.interests = interestsArr;
-      // If we signed out already, this update won't authenticate; do it via a temp session below.
-      // Simpler: perform update BEFORE sign-out. Adjust flow:
-      // (Already signed out above in the confirm-required branch.) Re-sign-in briefly to persist profile:
+      // Ensure we have a session to satisfy RLS on the profile update
       const { data: sessionCheck } = await supabase.auth.getSession();
       if (!sessionCheck.session) {
         const { error: siErr2 } = await supabase.auth.signInWithPassword({ email: f.email, password: f.password });
         if (siErr2) throw new Error("Photos uploaded but profile could not be updated. Please verify your email and complete your profile.");
       }
-      const { error: profErr } = await supabase.from("profiles").update(update).eq("id", data.user.id);
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({
+          photos: urls,
+          avatar_url: urls[0] ?? null,
+          ...(interestsArr.length ? { interests: interestsArr } : {}),
+        })
+        .eq("id", data.user.id);
       if (profErr) throw profErr;
 
       if (!data.session) {
