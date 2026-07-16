@@ -3,6 +3,7 @@ import { getWebRequest } from '@tanstack/react-start/server';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
 import { signToken, verifyToken, tokenFromRequest } from '@/lib/auth-helpers';
+import { attachSupabaseAuth } from '@/integrations/supabase/auth-attacher';
 
 export type AuthUser = {
   id: string;
@@ -86,6 +87,7 @@ export const signInFn = createServerFn({ method: 'POST' })
   });
 
 export const getMeFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
   .handler(async () => {
     const req = getWebRequest();

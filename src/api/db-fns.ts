@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { getWebRequest } from '@tanstack/react-start/server';
 import pool from '@/lib/db';
 import { verifyToken, tokenFromRequest } from '@/lib/auth-helpers';
+import { attachSupabaseAuth } from '@/integrations/supabase/auth-attacher';
 
 function requireAuth(req: Request | null) {
   const token = tokenFromRequest(req);
@@ -14,6 +15,7 @@ function requireAuth(req: Request | null) {
 // ── Profile ──────────────────────────────────────────────────────────────────
 
 export const getProfileFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
   .handler(async () => {
     const req = getWebRequest();
@@ -23,6 +25,7 @@ export const getProfileFn = createServerFn({ method: 'POST' })
   });
 
 export const updateProfileFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((d: {
     full_name?: string | null; username?: string | null; date_of_birth?: string | null;
     gender?: string | null; province?: string | null; city?: string | null;
@@ -56,6 +59,7 @@ export const updateProfileFn = createServerFn({ method: 'POST' })
 // ── Matching ──────────────────────────────────────────────────────────────────
 
 export const getBrowsableProfilesFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
   .handler(async () => {
     const req = getWebRequest();
@@ -73,6 +77,7 @@ export const getBrowsableProfilesFn = createServerFn({ method: 'POST' })
   });
 
 export const recordLikeFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((d: { likedId: string; action: 'like' | 'pass' }) => d)
   .handler(async ({ data }) => {
     const req = getWebRequest();
@@ -104,6 +109,7 @@ export const recordLikeFn = createServerFn({ method: 'POST' })
 // ── Messages ──────────────────────────────────────────────────────────────────
 
 export const getMatchThreadsFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
   .handler(async () => {
     const req = getWebRequest();
@@ -127,6 +133,7 @@ export const getMatchThreadsFn = createServerFn({ method: 'POST' })
   });
 
 export const getChatFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((d: { matchId: string }) => d)
   .handler(async ({ data }) => {
     const req = getWebRequest();
@@ -146,6 +153,7 @@ export const getChatFn = createServerFn({ method: 'POST' })
   });
 
 export const sendMessageFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
   .validator((d: { matchId: string; receiverId: string; content: string }) => d)
   .handler(async ({ data }) => {
     const req = getWebRequest();
