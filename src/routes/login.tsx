@@ -1,10 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Heart, Mail, Lock, Loader2 } from "lucide-react";
+import { CheckCircle2, Heart, Lock, Loader2, Mail } from "lucide-react";
 import { useState } from "react";
 import { signInFn } from "@/api/auth-fns";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    registered: s.registered === "1",
+  }),
   head: () => ({
     meta: [
       { title: "Log in — LoveConnect SA" },
@@ -16,6 +19,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
+  const { registered } = Route.useSearch();
   const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +33,7 @@ function Login() {
     try {
       const result = await signInFn({ data: { email, password } });
       localStorage.setItem("lc_token", result.token);
-      setUser(result.user); // also writes lc_user cache via cacheUser inside setUser
+      setUser(result.user);
       navigate({ to: "/matches" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -59,6 +63,15 @@ function Login() {
             <h1 className="font-display text-3xl font-bold">Log in</h1>
             <p className="mt-1 text-sm text-muted-foreground">Enter your details to continue.</p>
           </div>
+
+          {registered && (
+            <div className="flex items-start gap-3 rounded-2xl bg-green-50 border border-green-200 px-4 py-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-green-800 font-medium">
+                Account created! Log in below to get started.
+              </p>
+            </div>
+          )}
 
           {error && <p className="rounded-2xl bg-destructive/10 text-destructive text-sm px-4 py-3">{error}</p>}
 
