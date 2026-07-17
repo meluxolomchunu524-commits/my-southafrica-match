@@ -1,8 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, Heart, ImagePlus, Loader2, X } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Heart, ImagePlus, Loader2, Mail, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { signUpFn } from "@/api/auth-fns";
-import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -17,7 +16,7 @@ export const Route = createFileRoute("/signup")({
 const provinces = ["Gauteng","Western Cape","KwaZulu-Natal","Eastern Cape","Free State","Limpopo","Mpumalanga","North West","Northern Cape"];
 const MIN_PHOTOS = 3;
 const MAX_PHOTOS = 6;
-const MAX_BYTES = 3 * 1024 * 1024; // 3 MB (base64 ~33% larger, keep DB rows manageable)
+const MAX_BYTES = 3 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg","image/jpg","image/png","image/webp","image/heic","image/heif"];
 
 type FormState = {
@@ -43,13 +42,11 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 function Signup() {
-  const navigate = useNavigate();
-  const { setUser } = useAuth();
   const [f, setF] = useState<FormState>(initial);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setF((s) => ({ ...s, [k]: v }));
@@ -108,10 +105,8 @@ function Signup() {
           photos: photoBase64, interests: interestsArr,
         },
       });
-      localStorage.setItem("lc_token", result.token);
-      setUser(result.user); // also writes lc_user cache via cacheUser inside setUser
-      setSuccess(true);
-      setTimeout(() => navigate({ to: "/profile" }), 1800);
+      // Show the "check your email" screen — no auto-login yet
+      setSubmittedEmail(result.email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -119,21 +114,43 @@ function Signup() {
     }
   }
 
-  if (success) {
+  // ── Email sent confirmation screen ────────────────────────────────────────
+  if (submittedEmail) {
     return (
       <section className="min-h-[calc(100vh-4rem)] bg-gradient-soft py-12 px-4 grid place-items-center">
-        <div className="w-full max-w-lg rounded-3xl bg-card border border-border p-8 sm:p-10 shadow-soft text-center">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10">
-            <CheckCircle2 className="h-9 w-9 text-primary" />
+        <div className="w-full max-w-md rounded-3xl bg-card border border-border p-10 shadow-soft text-center">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-pink/10">
+            <Mail className="h-8 w-8 text-pink" />
           </div>
-          <h1 className="mt-6 font-display text-3xl font-bold">Welcome to LoveConnect SA!</h1>
-          <p className="mt-3 text-muted-foreground">Your account has been created successfully. Taking you to your profile…</p>
-          <div className="mt-6"><Loader2 className="mx-auto h-5 w-5 animate-spin text-pink" /></div>
+          <h1 className="mt-6 font-display text-2xl font-bold">Check your inbox</h1>
+          <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
+            We've sent a confirmation email to:
+          </p>
+          <p className="mt-1 font-semibold text-foreground break-all">{submittedEmail}</p>
+          <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
+            Click the link in that email to verify your address and activate your account. The link expires in 24 hours.
+          </p>
+          <div className="mt-8 rounded-2xl bg-muted/60 p-4 text-left text-xs text-muted-foreground space-y-1">
+            <p>• Check your spam or junk folder if you don't see it.</p>
+            <p>• The email is sent from <span className="font-medium">LoveConnect SA</span>.</p>
+            <p>• Once verified, you'll be signed in automatically.</p>
+          </div>
+          <p className="mt-6 text-sm text-muted-foreground">
+            Already verified?{" "}
+            <Link to="/login" className="font-semibold text-pink hover:underline">
+              Log in
+            </Link>
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Heart className="h-3.5 w-3.5 text-pink" fill="currentColor" />
+            LoveConnect SA
+          </div>
         </div>
       </section>
     );
   }
 
+  // ── Registration form ─────────────────────────────────────────────────────
   return (
     <section className="min-h-[calc(100vh-4rem)] bg-gradient-soft py-12 px-4">
       <div className="mx-auto max-w-3xl">
