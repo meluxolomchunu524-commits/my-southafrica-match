@@ -109,7 +109,7 @@ function Signup() {
         },
       });
       localStorage.setItem("lc_token", result.token);
-      setUser(result.user);
+      setUser(result.user); // also writes lc_user cache via cacheUser inside setUser
       setSuccess(true);
       setTimeout(() => navigate({ to: "/profile" }), 1800);
     } catch (err) {

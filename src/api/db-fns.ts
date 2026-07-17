@@ -10,13 +10,33 @@ function requireUserId(context: unknown): string {
 
 // ── Profile ──────────────────────────────────────────────────────────────────
 
+/** Fast: all profile fields except the photos array (small payload, instant render). */
 export const getProfileFn = createServerFn({ method: 'POST' })
   .middleware([attachSupabaseAuth])
   .validator((_d: Record<string, never>) => _d)
   .handler(async ({ context }) => {
     const userId = requireUserId(context);
-    const res = await pool.query('SELECT * FROM profiles WHERE id = $1', [userId]);
+    const res = await pool.query(
+      `SELECT id, email, full_name, username, phone, gender, date_of_birth,
+              province, city, bio, occupation, education,
+              relationship_preference, interests, avatar_url, cover_url, created_at
+       FROM profiles WHERE id = $1`,
+      [userId],
+    );
     return res.rows[0] ?? null;
+  });
+
+/** Slow: just the photos array — fetched in parallel with metadata. */
+export const getPhotosFn = createServerFn({ method: 'POST' })
+  .middleware([attachSupabaseAuth])
+  .validator((_d: Record<string, never>) => _d)
+  .handler(async ({ context }) => {
+    const userId = requireUserId(context);
+    const res = await pool.query(
+      'SELECT photos FROM profiles WHERE id = $1',
+      [userId],
+    );
+    return (res.rows[0]?.photos ?? []) as string[];
   });
 
 export const updateProfileFn = createServerFn({ method: 'POST' })

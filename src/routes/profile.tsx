@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Camera, Check, Heart, ImagePlus, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { getProfileFn, updateProfileFn } from "@/api/db-fns";
+import { getProfileFn, getPhotosFn, updateProfileFn } from "@/api/db-fns";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/profile")({
@@ -79,7 +79,12 @@ function ProfilePage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate({ to: "/login" }); return; }
-    getProfileFn({ data: {} }).then((data) => {
+    // Fire metadata and photos in parallel — photos can be large (base64)
+    // so we don't block the form render on them.
+    Promise.all([
+      getProfileFn({ data: {} }),
+      getPhotosFn({ data: {} }),
+    ]).then(([data, photoUrls]) => {
       if (data) {
         setF({
           full_name: data.full_name ?? "",
@@ -95,10 +100,11 @@ function ProfilePage() {
           interests: Array.isArray(data.interests) ? data.interests : [],
           cover_url: data.cover_url ?? null,
         });
-        // Build photo list from the stored photos array
-        const stored: string[] = Array.isArray(data.photos) ? data.photos : (data.avatar_url ? [data.avatar_url] : []);
-        setPhotos(stored.map((url, i) => ({ key: `existing-${i}`, url, isNew: false })));
       }
+      const stored: string[] = Array.isArray(photoUrls) && photoUrls.length > 0
+        ? photoUrls
+        : (data?.avatar_url ? [data.avatar_url] : []);
+      setPhotos(stored.map((url, i) => ({ key: `existing-${i}`, url, isNew: false })));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [user, authLoading, navigate]);

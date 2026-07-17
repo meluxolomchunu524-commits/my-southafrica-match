@@ -29,7 +29,7 @@ function Login() {
     try {
       const result = await signInFn({ data: { email, password } });
       localStorage.setItem("lc_token", result.token);
-      setUser(result.user);
+      setUser(result.user); // also writes lc_user cache via cacheUser inside setUser
       navigate({ to: "/matches" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
