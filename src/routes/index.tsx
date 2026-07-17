@@ -3,6 +3,7 @@ import {
   Heart, Shield, Sparkles, Users, MessageCircle, Star, Check,
   Smartphone, Apple, ArrowRight, MapPin, Quote,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import heroImg from "@/assets/hero-couple.jpg";
 import member1 from "@/assets/member-1.jpg";
 import member2 from "@/assets/member-2.jpg";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { user } = useAuth();
   return (
     <>
       {/* HERO */}
@@ -45,12 +47,21 @@ function Home() {
               South Africa — from Cape Town to Durban, Joburg to Polokwane.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link
-                to="/signup"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-base font-semibold text-purple shadow-glow hover:scale-[1.03] transition-transform"
-              >
-                Join Free <ArrowRight className="h-4 w-4" />
-              </Link>
+              {user ? (
+                <Link
+                  to="/matches"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-base font-semibold text-purple shadow-glow hover:scale-[1.03] transition-transform"
+                >
+                  Find My Match <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-base font-semibold text-purple shadow-glow hover:scale-[1.03] transition-transform"
+                >
+                  Join Free <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
               <Link
                 to="/matches"
                 className="inline-flex items-center gap-2 rounded-full border-2 border-white/70 backdrop-blur bg-white/10 px-7 py-4 text-base font-semibold text-white hover:bg-white/20 transition"
@@ -288,6 +299,7 @@ function Plan({
 }: {
   name: string; price: string; desc: string; features: string[]; highlight?: boolean;
 }) {
+  const { user } = useAuth();
   return (
     <div className={`relative rounded-3xl p-8 transition-all ${
       highlight
@@ -314,14 +326,14 @@ function Plan({
         ))}
       </ul>
       <Link
-        to="/signup"
+        to={user ? "/matches" : "/signup"}
         className={`mt-8 block rounded-full py-3 text-center text-sm font-semibold transition ${
           highlight
             ? "bg-white text-purple hover:scale-105"
             : "bg-gradient-brand text-white hover:shadow-soft"
         }`}
       >
-        Get started
+        {user ? "Find My Match" : "Get started"}
       </Link>
     </div>
   );
