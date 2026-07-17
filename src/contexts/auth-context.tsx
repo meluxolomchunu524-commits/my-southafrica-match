@@ -6,7 +6,7 @@ const TOKEN_KEY = 'lc_token';
 
 function readCachedUser(): AuthUser | null {
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+    const raw = localStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
     return null;
@@ -32,11 +32,10 @@ const AuthContext = createContext<AuthCtx>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialise from cache — synchronous, no network, instant render
-  const [user, setUserState] = useState<AuthUser | null>(readCachedUser);
-  // Only show "loading" spinner if a token exists but we have no cached user yet
-  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem(TOKEN_KEY);
-  const [loading, setLoading] = useState(hasToken && !readCachedUser());
+  // Always start null/true on both server and client so SSR HTML matches
+  // the first client render — prevents hydration mismatch.
+  const [user, setUserState] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   function setUser(u: AuthUser | null) {
     cacheUser(u);
@@ -44,21 +43,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+    // Runs only on the client, after hydration is complete.
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) { setLoading(false); return; }
 
-    // If we already have a cached user, background-refresh silently
-    const isSilent = !!readCachedUser();
-    if (!isSilent) setLoading(true);
-
-    getMeFn({ data: {} })
-      .then((u) => { setUser(u ?? null); })
-      .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
-        cacheUser(null);
-        setUserState(null);
-      })
-      .finally(() => setLoading(false));
+    const cached = readCachedUser();
+    if (cached) {
+      // Show the cached user immediately — no spinner, no network wait.
+      setUserState(cached);
+      setLoading(false);
+      // Silently refresh in the background to pick up any server-side changes.
+      getMeFn({ data: {} })
+        .then((u) => { if (u) setUser(u); })
+        .catch(() => {
+          // Token invalid — sign out.
+          localStorage.removeItem(TOKEN_KEY);
+          cacheUser(null);
+          setUserState(null);
+        });
+    } else {
+      // No cache — must hit the network (first login on this device).
+      getMeFn({ data: {} })
+        .then((u) => { setUser(u ?? null); })
+        .catch(() => {
+          localStorage.removeItem(TOKEN_KEY);
+          cacheUser(null);
+          setUserState(null);
+        })
+        .finally(() => setLoading(false));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
