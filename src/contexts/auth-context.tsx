@@ -1,83 +1,82 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getMeFn, type AuthUser } from '@/api/auth-fns';
+import { supabase } from '@/integrations/supabase/client';
 
-const USER_KEY = 'lc_user';
-const TOKEN_KEY = 'lc_token';
-
-function readCachedUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function cacheUser(u: AuthUser | null) {
-  if (typeof window === 'undefined') return;
-  if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
-  else localStorage.removeItem(USER_KEY);
-}
+export type AuthUser = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+};
 
 type AuthCtx = {
   user: AuthUser | null;
   loading: boolean;
   setUser: (u: AuthUser | null) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthCtx>({
-  user: null, loading: true,
-  setUser: () => {}, signOut: () => {},
+  user: null,
+  loading: true,
+  setUser: () => {},
+  signOut: async () => {},
 });
 
+async function loadProfile(userId: string, email: string): Promise<AuthUser> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name, username, avatar_url')
+    .eq('id', userId)
+    .maybeSingle();
+  return {
+    id: userId,
+    email,
+    full_name: data?.full_name ?? null,
+    username: data?.username ?? null,
+    avatar_url: data?.avatar_url ?? null,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Always start null/true on both server and client so SSR HTML matches
-  // the first client render — prevents hydration mismatch.
   const [user, setUserState] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   function setUser(u: AuthUser | null) {
-    cacheUser(u);
     setUserState(u);
   }
 
   useEffect(() => {
-    // Runs only on the client, after hydration is complete.
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) { setLoading(false); return; }
+    let mounted = true;
 
-    const cached = readCachedUser();
-    if (cached) {
-      // Show the cached user immediately — no spinner, no network wait.
-      setUserState(cached);
-      setLoading(false);
-      // Silently refresh in the background to pick up any server-side changes.
-      getMeFn({ data: {} })
-        .then((u) => { if (u) setUser(u); })
-        .catch(() => {
-          // Token invalid — sign out.
-          localStorage.removeItem(TOKEN_KEY);
-          cacheUser(null);
-          setUserState(null);
-        });
-    } else {
-      // No cache — must hit the network (first login on this device).
-      getMeFn({ data: {} })
-        .then((u) => { setUser(u ?? null); })
-        .catch(() => {
-          localStorage.removeItem(TOKEN_KEY);
-          cacheUser(null);
-          setUserState(null);
-        })
-        .finally(() => setLoading(false));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!mounted) return;
+      if (data.session?.user) {
+        const u = await loadProfile(data.session.user.id, data.session.user.email ?? '');
+        if (mounted) setUserState(u);
+      }
+      if (mounted) setLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUserState(null);
+        return;
+      }
+      if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED')) {
+        const u = await loadProfile(session.user.id, session.user.email ?? '');
+        setUserState(u);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
-  function signOut() {
-    localStorage.removeItem(TOKEN_KEY);
-    cacheUser(null);
+  async function signOut() {
+    await supabase.auth.signOut();
     setUserState(null);
   }
 
