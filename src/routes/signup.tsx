@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Heart, ImagePlus, Loader2, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { signUpFn } from "@/api/auth-fns";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -97,41 +97,27 @@ function Signup() {
       const photoBase64 = await Promise.all(photos.map((p) => fileToBase64(p.file)));
       const interestsArr = f.interests.split(",").map((s) => s.trim()).filter(Boolean);
 
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: f.email,
-        password: f.password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            full_name: f.full_name,
-            username: f.username,
-            phone: f.phone,
-            gender: f.gender,
-            date_of_birth: f.date_of_birth,
-            province: f.province,
-            city: f.city,
-            relationship_preference: f.relationship_preference,
-            bio: f.bio,
-          },
+      // Create the account through the app's JWT auth system (custom `users`
+      // + `profiles` tables). This is the ONLY auth path the server functions
+      // understand — they authenticate via the `lc_token` JWT that this flow
+      // ultimately enables (see TAKEOVER.md §5a).
+      await signUpFn({
+        data: {
+          email: f.email,
+          password: f.password,
+          full_name: f.full_name,
+          username: f.username,
+          phone: f.phone,
+          gender: f.gender,
+          date_of_birth: f.date_of_birth,
+          province: f.province,
+          city: f.city,
+          relationship_preference: f.relationship_preference,
+          bio: f.bio,
+          photos: photoBase64,
+          interests: interestsArr,
         },
       });
-      if (authErr) throw authErr;
-      const userId = authData.user?.id;
-      if (userId) {
-        // Wait a beat for the handle_new_user trigger to insert the profile row,
-        // then attach photos, avatar, and interests.
-        await new Promise((r) => setTimeout(r, 300));
-        await supabase
-          .from("profiles")
-          .update({
-            photos: photoBase64,
-            avatar_url: photoBase64[0] ?? null,
-            interests: interestsArr,
-          })
-          .eq("id", userId);
-      }
-      // Sign out so the /login page can be used cleanly.
-      await supabase.auth.signOut();
       navigate({ to: "/signup-success" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

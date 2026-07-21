@@ -63,7 +63,10 @@ function Matches() {
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    // Wait until auth has finished validating before hitting an authenticated
+    // server function. Firing on the optimistic localStorage cache alone races
+    // ahead of token validation and surfaces a false "Not authenticated" error.
+    if (authLoading || !user) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -75,11 +78,19 @@ function Matches() {
         }
       })
       .catch((e: any) => {
-        if (!cancelled) setError(e.message ?? "Failed to load profiles.");
+        if (cancelled) return;
+        const msg = e?.message ?? "Failed to load profiles.";
+        // A stale/absent session token means we're not really logged in —
+        // send the user to log in instead of showing a dead-end error.
+        if (/not authenticated/i.test(msg)) {
+          navigate({ to: "/login" });
+          return;
+        }
+        setError(msg);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, authLoading, navigate]);
 
   // Compute the visible profile — wrap around when we hit the end
   const current: Profile | undefined = profiles.length > 0 ? profiles[index % profiles.length] : undefined;

@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { getMeFn } from '@/api/auth-fns';
 
 export type AuthUser = {
@@ -23,21 +22,6 @@ const AuthContext = createContext<AuthCtx>({
   setUser: () => {},
   signOut: async () => {},
 });
-
-async function loadProfile(userId: string, email: string): Promise<AuthUser> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('full_name, username, avatar_url')
-    .eq('id', userId)
-    .maybeSingle();
-  return {
-    id: userId,
-    email,
-    full_name: data?.full_name ?? null,
-    username: data?.username ?? null,
-    avatar_url: data?.avatar_url ?? null,
-  };
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(null);
@@ -77,25 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      if (event === 'SIGNED_OUT') {
-        setUserState(null);
-        return;
-      }
-      if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED')) {
-        const u = await loadProfile(session.user.id, session.user.email ?? '');
-        setUserState(u);
-      }
-    });
-
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
     };
   }, []);
 
   async function signOut() {
-    try { await supabase.auth.signOut(); } catch {}
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('lc_token');
