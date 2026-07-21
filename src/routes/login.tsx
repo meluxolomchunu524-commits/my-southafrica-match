@@ -1,8 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Heart, Lock, Loader2, Mail } from "lucide-react";
 import { useState } from "react";
-import { signInFn } from "@/api/auth-fns";
-import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -20,7 +19,6 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const navigate = useNavigate();
   const { registered } = Route.useSearch();
-  const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,12 +29,11 @@ function Login() {
     setError(null);
     setLoading(true);
     try {
-      const result = await signInFn({ data: { email, password } });
-      localStorage.setItem("lc_token", result.token);
-      setUser(result.user);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       navigate({ to: "/matches" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : "Invalid email or password.");
     } finally {
       setLoading(false);
     }

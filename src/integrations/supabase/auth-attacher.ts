@@ -1,4 +1,5 @@
 import { createMiddleware } from '@tanstack/react-start';
+import { getRequest } from '@tanstack/react-start/server';
 import { verifyToken } from '@/lib/auth-helpers';
 
 /**
@@ -15,10 +16,11 @@ export const attachSupabaseAuth = createMiddleware({ type: 'function' })
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   })
-  .server(async ({ next, request }) => {
+  .server(async ({ next }) => {
+    const request = getRequest();
     const auth =
-      request.headers.get('authorization') ??
-      request.headers.get('Authorization') ??
+      request?.headers.get('authorization') ??
+      request?.headers.get('Authorization') ??
       '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
     const payload = token ? verifyToken(token) : null;

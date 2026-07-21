@@ -30,7 +30,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 // Null / no-op client — returned when Supabase credentials are not configured.
 // Every method returns a safe empty response so the app renders without crashing.
 // ---------------------------------------------------------------------------
-function createNullClient() {
+function createNullClient(): any {
   const noopSubscription = { unsubscribe: () => {} };
 
   // A chainable query builder stub that always resolves to { data: [], error: null }
@@ -115,7 +115,7 @@ function createNullClient() {
   } as unknown as ReturnType<typeof createSupabaseClient>;
 }
 
-function createSupabaseClient() {
+function createSupabaseClient(): any {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
