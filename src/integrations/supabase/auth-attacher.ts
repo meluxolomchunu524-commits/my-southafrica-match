@@ -17,7 +17,7 @@ export const attachSupabaseAuth = createMiddleware({ type: 'function' })
     });
   })
   .server(async ({ next }) => {
-    const request = getWebRequest();
+    const request = getRequest();
     const auth =
       request?.headers.get('authorization') ??
       request?.headers.get('Authorization') ??
