@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }: any) => {
       if (!mounted) return;
       if (data.session?.user) {
         const u = await loadProfile(data.session.user.id, data.session.user.email ?? '');
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_OUT') {
         setUserState(null);
         return;
