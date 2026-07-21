@@ -105,7 +105,7 @@ function Signup() {
           photos: photoBase64, interests: interestsArr,
         },
       });
-      navigate({ to: "/login", search: { registered: "1" } });
+      navigate({ to: "/signup-success" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
