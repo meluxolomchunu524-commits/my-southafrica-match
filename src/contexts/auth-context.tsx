@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getMeFn } from '@/api/auth-fns';
 
 export type AuthUser = {
   id: string;
@@ -49,14 +50,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }: any) => {
-      if (!mounted) return;
-      if (data.session?.user) {
-        const u = await loadProfile(data.session.user.id, data.session.user.email ?? '');
-        if (mounted) setUserState(u);
+    // Fast-path: read cached user from localStorage for instant UI.
+    try {
+      const cached = typeof window !== 'undefined' ? localStorage.getItem('lc_user') : null;
+      if (cached && mounted) setUserState(JSON.parse(cached));
+    } catch {}
+
+    (async () => {
+      try {
+        const me = await getMeFn({ data: {} });
+        if (!mounted) return;
+        if (me) {
+          setUserState(me as any);
+          try { if (typeof window !== 'undefined') localStorage.setItem('lc_user', JSON.stringify(me)); } catch {}
+        } else {
+          setUserState(null);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('lc_user');
+              localStorage.removeItem('lc_token');
+            }
+          } catch {}
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
-      if (mounted) setLoading(false);
-    });
+    })();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_OUT') {
@@ -76,7 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signOut() {
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch {}
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lc_token');
+        localStorage.removeItem('lc_user');
+      }
+    } catch {}
     setUserState(null);
   }
 
