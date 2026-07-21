@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as SignupSuccessRouteImport } from './routes/signup-success'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MessagesRouteImport } from './routes/messages'
@@ -26,6 +27,11 @@ import { Route as MessagesMatchIdRouteImport } from './routes/messages.$matchId'
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupSuccessRoute = SignupSuccessRouteImport.update({
+  id: '/signup-success',
+  path: '/signup-success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/messages': typeof MessagesRouteWithChildren
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
+  '/signup-success': typeof SignupSuccessRoute
   '/verify-email': typeof VerifyEmailRoute
   '/messages/$matchId': typeof MessagesMatchIdRoute
   '/messages/': typeof MessagesIndexRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/membership': typeof MembershipRoute
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
+  '/signup-success': typeof SignupSuccessRoute
   '/verify-email': typeof VerifyEmailRoute
   '/messages/$matchId': typeof MessagesMatchIdRoute
   '/messages': typeof MessagesIndexRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/messages': typeof MessagesRouteWithChildren
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
+  '/signup-success': typeof SignupSuccessRoute
   '/verify-email': typeof VerifyEmailRoute
   '/messages/$matchId': typeof MessagesMatchIdRoute
   '/messages/': typeof MessagesIndexRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/profile'
     | '/signup'
+    | '/signup-success'
     | '/verify-email'
     | '/messages/$matchId'
     | '/messages/'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/membership'
     | '/profile'
     | '/signup'
+    | '/signup-success'
     | '/verify-email'
     | '/messages/$matchId'
     | '/messages'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/profile'
     | '/signup'
+    | '/signup-success'
     | '/verify-email'
     | '/messages/$matchId'
     | '/messages/'
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   MessagesRoute: typeof MessagesRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
+  SignupSuccessRoute: typeof SignupSuccessRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
 }
 
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup-success': {
+      id: '/signup-success'
+      path: '/signup-success'
+      fullPath: '/signup-success'
+      preLoaderRoute: typeof SignupSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   MessagesRoute: MessagesRouteWithChildren,
   ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
+  SignupSuccessRoute: SignupSuccessRoute,
   VerifyEmailRoute: VerifyEmailRoute,
 }
 export const routeTree = rootRouteImport
